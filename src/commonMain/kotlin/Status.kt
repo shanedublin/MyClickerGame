@@ -15,11 +15,15 @@ class Status(var exp: Int = 0) {
     var investment = 0
     var maxInvestment = 100
 
+    /**
+     * also known as skill points
+     */
     var spendingPoints = 50
     var maxSpendingPoints = 100
 
 
     fun clickExp() {
+//        println("ClickExp")
         exp += expClickingPower
         if (exp > maxExp) {
             exp = maxExp
@@ -52,14 +56,14 @@ class Status(var exp: Int = 0) {
 class Skill(
     var name: String = "Unnamed Skill",
     var level: Int = 1,
-    var costs: List<Int> = listOf(10, 11, 12, 13),
+    var costs: List<Int> = listOf(0,10, 11, 12, 13),
     var upgradeAction: (cost: Int) -> Unit = {}
 ) {
     /**
      *  returns if you can't upgrade or you are at max level
      */
     fun upgrade(availablePoints: Int): Int {
-        val levelCost = costs.elementAtOrNull(level - 1)
+        val levelCost = costs.elementAtOrNull(level)
         levelCost?.let {
             if (it <= availablePoints) {
                 level++
