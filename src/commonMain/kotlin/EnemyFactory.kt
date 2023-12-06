@@ -1,10 +1,12 @@
 import korlibs.image.color.*
 import korlibs.io.lang.*
+import korlibs.korge.input.mouse
 import korlibs.korge.view.*
 import korlibs.korge.view.Circle
 import korlibs.korge.view.align.*
 import korlibs.math.geom.*
 import korlibs.math.random.*
+import kotlin.math.absoluteValue
 import kotlin.random.*
 import kotlin.time.*
 
@@ -31,14 +33,32 @@ class Enemy(root: Container) {
         var t = 0L
 //        val randomPos = Point(Random(2L).ints(0,1024).first(),2)
 //        c.centerOnStage()
-        c.pos = Point(0,0)
-        val center = c.pos
-        println("Center pos: ${center}")
-        updater = c.addUpdater { timeSpan ->
+//        c.pos = Point(0, 0)
+//        val center = c.pos
+//        println("Center pos: ${center}")
+//        root.width
+//        root.height
+        // change to be the mouse?
+        val center = Point(root.width/2,root.height/2)
 
-            c.pos.let {
-                x += 1
-                y += 1
+        updater = c.addUpdater { timeSpan ->
+            val target = stage?.input?.mousePos
+            target?.let {
+
+                val vector = getVectorTowardPoint(c.center().pos, target)
+                val mag = vector.x.absoluteValue + vector.y.absoluteValue
+
+                if(mag > 2){
+                    val movefactorVector = vector.normalized
+                    c.pos.let {
+                        x += movefactorVector.x
+                        y += movefactorVector.y
+                    }
+
+                } else{
+
+                }
+
             }
 
 
@@ -71,4 +91,11 @@ class Enemy(root: Container) {
     fun circle() {
 
     }
+}
+
+
+fun getVectorTowardPoint(from: Point, tooo: Point): Vector2D {
+    val vector = tooo - from
+    return vector
+
 }

@@ -1,62 +1,85 @@
-class Status(var exp: Int = 0) {
+class Status(var mana: Int = 0) {
 
-    val maxExp = 1000000
 
-    val clickingSkill = Skill("Clicking Power", upgradeAction = { cost -> expClickingPower++; spendingPoints -= cost })
-    val investmentSkill = Skill("Investment Power", upgradeAction = { cost ->  investClickingPower += 2; spendingPoints -= cost })
-    val autoClickingSkill = Skill("Auto Clicking Frequency", costs = listOf(10,100,1000,10000,100000,),
-        upgradeAction = { cost ->  autoClickingFrequency += 1; spendingPoints -= cost },
-        level = 0)
+    //    var mana = 0
+    //var skillPoints = 0
+    var manaPerSkillPoint = 10
 
-    var expClickingPower = 1
+
+    var maxMana = 10
+
+    val clickingSkill = Skill("Clicking Power", upgradeAction = { cost -> manaClickingPower++; mana -= cost })
+    val investmentSkill =
+        Skill("Investment Power", upgradeAction = { cost -> investClickingPower += 2; mana -= cost })
+    val autoClickingSkill = Skill(
+        "Auto Clicking Frequency", costs = listOf(10, 100, 1000, 10000, 100000),
+        upgradeAction = { cost -> autoClickingFrequency += 1; mana -= cost },
+        level = 0
+    )
+
+    val manaIncreaseAmount = listOf(10, 30, 50, 100, 300)
+    val increaseManaSkill =
+        Skill("Increase Mana",
+            level = 0,
+            costs = listOf(10,20,400,1000),
+            upgradeAction = { cost -> maxMana += getManaAmount(); spendingPoints -= cost })
+
+    fun getManaAmount(): Int {
+        return manaIncreaseAmount[increaseManaSkill.level-1]
+    }
+
+
+    var manaClickingPower = 1
     var investClickingPower = 2
     var autoClickingFrequency = 0.0
 
     var investment = 0
-    var maxInvestment = 100
+    var maxInvestment = 10
 
     /**
      * also known as skill points
      */
-    var spendingPoints = 50
-    var maxSpendingPoints = 100
+    var spendingPoints = 0
+//    var maxSpendingPoints = 100
 
 
-    fun clickExp() {
-//        println("ClickExp")
-        exp += expClickingPower
-        if (exp > maxExp) {
-            exp = maxExp
+    fun clickMana() {
+        mana += manaClickingPower
+        if (mana > maxMana) {
+            mana = maxMana
         }
     }
 
     fun invest() {
-        if (exp >= investClickingPower) {
+        if (mana >= investClickingPower) {
             investment += investClickingPower
-            exp -= investClickingPower
-        } else if (exp > 0) {
-            investment += exp
-            exp = 0
+            mana -= investClickingPower
+        } else if (mana > 0) {
+            investment += mana
+            mana = 0
         }
-        if (investment > maxInvestment) {
-            investment = maxInvestment
+        if (investment >= maxInvestment) {
+            investment -= maxInvestment
+            spendingPoints += 1
+            // This might need to change the scaling some how
+            maxInvestment = (spendingPoints + 1) * manaPerSkillPoint
         }
+
     }
 
     fun reset() {
-        spendingPoints += investment
-        if (spendingPoints > maxSpendingPoints) {
-            spendingPoints = maxSpendingPoints
-        }
-        exp = 0
+        mana = 0
         investment = 0
+        if(spendingPoints < 0)
+            spendingPoints = 0
+        maxInvestment = spendingPoints + 1 * 10
     }
 }
 
 class Skill(
     var name: String = "Unnamed Skill",
     var level: Int = 1,
-    var costs: List<Int> = listOf(0,10, 11, 12, 13),
+    var costs: List<Int> = listOf(0, 5, 10, 15, 20),
     var upgradeAction: (cost: Int) -> Unit = {}
 ) {
     /**
@@ -72,5 +95,9 @@ class Skill(
             }
         }
         return levelCost ?: 0
+    }
+
+    fun buttonDescrpition(): String {
+        return "$name lvl: $level Upgrade Cost: ${upgrade(0)}"
     }
 }

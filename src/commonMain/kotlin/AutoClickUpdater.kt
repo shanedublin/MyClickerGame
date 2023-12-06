@@ -11,7 +11,7 @@ class AutoClickUpdater(private val status: Status, private val root: View) {
             updater.cancel()
         if (status.autoClickingFrequency > 0) {
             updater = root.addFixedUpdater(Frequency(status.autoClickingFrequency), updatable = {
-                status.clickExp()
+                status.clickMana()
             })
         }
     }
