@@ -1,6 +1,13 @@
 class Status(var mana: Int = 0) {
 
 
+    init {
+        enemyDeathSignal.add {
+            invest(it.enemy.reward)
+        }
+    }
+
+
     //    var mana = 0
     //var skillPoints = 0
     var manaPerSkillPoint = 10
@@ -40,7 +47,9 @@ class Status(var mana: Int = 0) {
      * also known as skill points
      */
     var spendingPoints = 0
-//    var maxSpendingPoints = 100
+
+
+
 
 
     fun clickMana() {
@@ -63,9 +72,21 @@ class Status(var mana: Int = 0) {
             spendingPoints += 1
             // This might need to change the scaling some how
             maxInvestment = (spendingPoints + 1) * manaPerSkillPoint
+            invest(0)
         }
-
     }
+
+    fun invest(investAmount: Int ){
+        investment+= investAmount
+        if (investment >= maxInvestment) {
+            investment -= maxInvestment
+            spendingPoints += 1
+            invest(0)
+            // This might need to change the scaling some how
+            maxInvestment = (spendingPoints + 1) * manaPerSkillPoint
+        }
+    }
+
 
     fun reset() {
         mana = 0
@@ -74,6 +95,9 @@ class Status(var mana: Int = 0) {
             spendingPoints = 0
         maxInvestment = spendingPoints + 1 * 10
     }
+
+
+
 }
 
 class Skill(

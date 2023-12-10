@@ -5,6 +5,7 @@ import korlibs.image.color.*
 import korlibs.inject.*
 import korlibs.korge.input.*
 import korlibs.korge.ui.*
+import korlibs.korge.view.Circle
 import korlibs.korge.view.align.*
 import korlibs.math.geom.*
 
@@ -20,12 +21,40 @@ suspend fun main() = Korge(windowSize = Size(1400, 800), backgroundColor = Color
 }
 
 val mainInjector = Injector()
+lateinit var enemyFactory: EnemyFactory
+lateinit var manaSphere: Circle
 
 class MyScene : Scene() {
     val status = mainInjector.get<Status>()
-    val enemy = EnemyFactory()
 
     override suspend fun SContainer.sceneMain() {
+//        views.clearColor = Colors.DARKGREEN
+
+
+        manaSphere = circle {
+            radius = 30.0
+            onClick {
+                status.clickMana()
+            }
+            addUpdater {
+                val xy: Point = input.mousePos
+                val buttons: Int = input.mouseButtons
+            }
+            pos = (Point(700, 400))
+        }
+//        manaSphere.centerOnStage()
+
+
+//        manaSphere.centerOnStage()
+
+        val investCircle = circle { radius = 10.0 }
+        investCircle.alignTopToBottomOf(manaSphere, 10)
+        investCircle.centerXOnStage()
+
+        investCircle.onClick { status.invest() }
+//        manaSphere.onClick { status.clickMana() }
+        // should rearange so this isntt dependent on manasphere being initialized
+        enemyFactory = EnemyFactory(root)
 
 
         var updater = AutoClickUpdater(status, root)
@@ -61,6 +90,7 @@ class MyScene : Scene() {
 
         resetButton.onClick {
             status.reset()
+            enemyFactory.cleanup()
             sceneContainer.changeTo({ SkillTreeScreen() })
         }
 
@@ -104,21 +134,34 @@ class MyScene : Scene() {
         autoClickUpgradeButton.text = status.autoClickingSkill.buttonDescrpition()
 
 
-        var expCircle = circle { radius = 30.0 }
-        expCircle.centerOnStage()
+        mouse.onClick { it ->
+            val point = it.downPosStage
+            println(enemyFactory.list.size)
 
-        val investCircle = circle { radius = 10.0 }
-        investCircle.alignTopToBottomOf(expCircle, 10)
-        investCircle.centerXOnStage()
+            val iter = enemyFactory.list.iterator()
+                while (iter.hasNext()) {
+                    val enemy = iter.next()
+                if (enemy.enemyShape.hitTestAny(point)) {
+                    enemy.damage(100)
+                }
 
-        investCircle.onClick { status.invest() }
-        expCircle.onClick { status.clickMana() }
+            }
+
+        }
 
         this.addUpdater {
+
+            val target = input.mousePos
+            val buttons: Int = input.mouseButtons
+
+
+            // Update Text last
             manaNumber.text = "${status.mana}"
             // show the max number
             investNumber.text = "${status.investment} : ${status.maxInvestment}"
             spendingPointsNumber.text = "${status.spendingPoints}"
+
+
         }
 
 
@@ -128,7 +171,7 @@ class MyScene : Scene() {
 
     override suspend fun sceneDestroy() {
         super.sceneDestroy()
-        enemy.cleanup()
+        enemyFactory.cleanup()
     }
 }
 
