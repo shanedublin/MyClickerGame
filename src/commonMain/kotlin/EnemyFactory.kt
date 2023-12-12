@@ -1,6 +1,8 @@
+import extensions.sub
 import korlibs.event.Event
 import korlibs.image.color.Colors
 import korlibs.io.async.Signal
+import korlibs.io.concurrent.atomic.KorAtomicInt
 import korlibs.io.lang.*
 import korlibs.korge.input.*
 import korlibs.korge.view.*
@@ -11,43 +13,38 @@ import korlibs.time.*
 import kotlin.math.absoluteValue
 import kotlin.random.*
 
-class EnemyFactory(var root: View)  {
+class EnemyFactory(var root: View) {
     val status = mainInjector.get<Status>()
     val list = mutableListOf<Enemy>()
+    val deleteMeList = mutableListOf<Enemy>()
     val updater: Cancellable
     val updater2: Cancellable
 
-    var checkDeaths = false
 
     init {
 
         enemyDeathSignal.add {
             //list.remove(it.enemy)
-            checkDeaths = false
+            deleteMeList.add(it.enemy)
         }
 
 
-        updater = root.addFixedUpdater(23.timesPerSecond) {
+        updater = root.addFixedUpdater(1.timesPerSecond) {
 
-                spawnUnit()
-            if(status.spendingPoints > 1){
+            spawnUnit()
+            if (status.spendingPoints > 1) {
                 spawnUnit()
             }
-            if(status.spendingPoints > 2){
+            if (status.spendingPoints > 2) {
                 spawnUnit()
             }
 
         }
 
         updater2 = root.addUpdater {
-
-            list.removeAll { it.health <=0 }
-
-            checkDeaths = true
-
+            list.removeAll(deleteMeList)
+            deleteMeList.clear()
         }
-
-
         spawnUnit()
 
     }
@@ -64,7 +61,8 @@ class EnemyFactory(var root: View)  {
     fun create(root: Container): Enemy {
         return Enemy(root).also { list.add(it) }
     }
-    fun killUnit(enemy: Enemy){
+
+    fun killUnit(enemy: Enemy) {
         list.remove(enemy)
     }
 
@@ -78,6 +76,8 @@ class EnemyFactory(var root: View)  {
 
 }
 
+
+
 class Enemy(root: Container) {
     val updater: Cancellable
     val enemyShape: Circle
@@ -85,13 +85,15 @@ class Enemy(root: Container) {
     val reward = 5
     var health = 1
     var maxHealth = 1
+    var damage = 1
 
+    val status = mainInjector.get<Status>()
 
 
     init {
 
 
-        enemyShape = root.circle { radius = 16.0; color  = Colors.RED }
+        enemyShape = root.circle { radius = 16.0; color = Colors.RED }
         var t = 0L
 //        val randomPos = Point(Random(2L).ints(0,1024).first(),2)
 //        c.centerOnStage()
@@ -105,8 +107,10 @@ class Enemy(root: Container) {
 
         updater = enemyShape.addUpdater { timeSpan ->
 
-            if(enemyShape.collidesWithShape(manaSphere)){
-               cleanup()
+            if (enemyShape.collidesWithShape(manaSphere)) {
+                // basically kill itself
+                damage(100)
+                status.mana.sub(damage)
 
             }
 
@@ -138,7 +142,7 @@ class Enemy(root: Container) {
     }
 
 
-   fun cleanup() {
+    fun cleanup() {
         updater.cancel()
         enemyShape.removeFromParent()
     }
@@ -168,6 +172,9 @@ class Enemy(root: Container) {
 
     fun damage(i: Int) {
         health -= i
+        if (health <= 0) {
+            kill()
+        }
     }
 }
 

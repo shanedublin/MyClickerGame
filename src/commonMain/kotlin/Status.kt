@@ -1,4 +1,13 @@
-class Status(var mana: Int = 0) {
+import korlibs.io.concurrent.atomic.KorAtomicInt
+import korlibs.io.concurrent.atomic.setValue
+import kotlin.reflect.KProperty
+
+
+
+
+class Status() {
+    var mana: KorAtomicInt = KorAtomicInt(0)
+
 
 
     init {
@@ -15,12 +24,12 @@ class Status(var mana: Int = 0) {
 
     var maxMana = 10
 
-    val clickingSkill = Skill("Clicking Power", upgradeAction = { cost -> manaClickingPower++; mana -= cost })
+    val clickingSkill = Skill("Clicking Power", upgradeAction = { cost -> manaClickingPower++; mana.addAndGet(-cost) })
     val investmentSkill =
-        Skill("Investment Power", upgradeAction = { cost -> investClickingPower += 2; mana -= cost })
+        Skill("Investment Power", upgradeAction = { cost -> investClickingPower += 2; mana.addAndGet(-cost) })
     val autoClickingSkill = Skill(
         "Auto Clicking Frequency", costs = listOf(10, 100, 1000, 10000, 100000),
-        upgradeAction = { cost -> autoClickingFrequency += 1; mana -= cost },
+        upgradeAction = { cost -> autoClickingFrequency += 1; mana.addAndGet(-cost) },
         level = 0
     )
 
@@ -53,19 +62,19 @@ class Status(var mana: Int = 0) {
 
 
     fun clickMana() {
-        mana += manaClickingPower
-        if (mana > maxMana) {
-            mana = maxMana
+        mana.addAndGet( manaClickingPower)
+        if (mana.value > maxMana) {
+            mana.compareAndSet(mana.value,maxMana)
         }
     }
 
     fun invest() {
-        if (mana >= investClickingPower) {
+        if (mana.value >= investClickingPower) {
             investment += investClickingPower
-            mana -= investClickingPower
-        } else if (mana > 0) {
-            investment += mana
-            mana = 0
+            mana.addAndGet(- investClickingPower)
+        } else if (mana.value > 0) {
+            investment += mana.value
+            mana.compareAndSet(mana.value,0)
         }
         if (investment >= maxInvestment) {
             investment -= maxInvestment
@@ -89,11 +98,18 @@ class Status(var mana: Int = 0) {
 
 
     fun reset() {
-        mana = 0
+        mana.compareAndSet(mana.value,0)
         investment = 0
         if(spendingPoints < 0)
             spendingPoints = 0
         maxInvestment = spendingPoints + 1 * 10
+
+
+        // skills
+        autoClickingSkill.level=0
+        investmentSkill.level = 1
+        clickingSkill.level = 0
+
     }
 
 

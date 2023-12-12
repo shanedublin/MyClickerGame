@@ -29,7 +29,8 @@ class SkillTreeScreen :Scene(){
         val skillButton = uiButton(label = "Increase Maximum Mana", size= Size(200,100))
         skillButton.text = status.increaseManaSkill.buttonDescrpition()
         skillButton.onClick {
-            status.increaseManaSkill.upgrade(100)
+            status.increaseManaSkill.upgrade(status.spendingPoints)
+            skillButton.text = status.increaseManaSkill.buttonDescrpition()
         }
 
         skillButton.alignLeftToLeftOf(root,10)

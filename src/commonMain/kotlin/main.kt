@@ -3,6 +3,8 @@ import korlibs.korge.scene.*
 import korlibs.korge.view.*
 import korlibs.image.color.*
 import korlibs.inject.*
+import korlibs.io.async.launchImmediately
+import korlibs.io.lang.Cancellable
 import korlibs.korge.input.*
 import korlibs.korge.ui.*
 import korlibs.korge.view.Circle
@@ -12,7 +14,7 @@ import korlibs.math.geom.*
 suspend fun main() = Korge(windowSize = Size(1400, 800), backgroundColor = Colors["#2b2b2b"]) {
 
 
-    mainInjector.mapSingleton<Status> { Status(0) }
+    mainInjector.mapSingleton<Status> { Status() }
 
     val sceneContainer = sceneContainer()
 
@@ -24,11 +26,23 @@ val mainInjector = Injector()
 lateinit var enemyFactory: EnemyFactory
 lateinit var manaSphere: Circle
 
+
+class Player {
+
+
+}
+
 class MyScene : Scene() {
     val status = mainInjector.get<Status>()
+    var autoClickUpdater: AutoClickUpdater? = null
+
+
+    override suspend fun sceneBeforeLeaving() {
+        super.sceneBeforeLeaving()
+        autoClickUpdater?.stop()
+    }
 
     override suspend fun SContainer.sceneMain() {
-//        views.clearColor = Colors.DARKGREEN
 
 
         manaSphere = circle {
@@ -42,10 +56,6 @@ class MyScene : Scene() {
             }
             pos = (Point(700, 400))
         }
-//        manaSphere.centerOnStage()
-
-
-//        manaSphere.centerOnStage()
 
         val investCircle = circle { radius = 10.0 }
         investCircle.alignTopToBottomOf(manaSphere, 10)
@@ -57,7 +67,7 @@ class MyScene : Scene() {
         enemyFactory = EnemyFactory(root)
 
 
-        var updater = AutoClickUpdater(status, root)
+        autoClickUpdater = AutoClickUpdater(status, root)
 
         val t = text("Click on the circle")
         t.centerXOnStage()
@@ -102,7 +112,7 @@ class MyScene : Scene() {
         clickUpgradeButton.alignBottomToBottomOf(root, 10)
 
         clickUpgradeButton.onPress {
-            status.clickingSkill.upgrade(status.mana)
+            status.clickingSkill.upgrade(status.mana.value)
             clickUpgradeButton.text = status.clickingSkill.buttonDescrpition()
 
         }
@@ -115,7 +125,7 @@ class MyScene : Scene() {
         investUpgradeButton.alignRightToRightOf(root, 10)
         investUpgradeButton.alignBottomToTopOf(clickUpgradeButton, 10)
         investUpgradeButton.onPress {
-            status.investmentSkill.upgrade(status.mana)
+            status.investmentSkill.upgrade(status.mana.value)
             investUpgradeButton.text = status.investmentSkill.buttonDescrpition()
         }
         investUpgradeButton.text = status.investmentSkill.buttonDescrpition()
@@ -127,9 +137,9 @@ class MyScene : Scene() {
         autoClickUpgradeButton.alignRightToRightOf(root, 10)
         autoClickUpgradeButton.alignBottomToTopOf(investUpgradeButton, 10)
         autoClickUpgradeButton.onPress {
-            status.autoClickingSkill.upgrade(status.mana)
+            status.autoClickingSkill.upgrade(status.mana.value)
             autoClickUpgradeButton.text = status.autoClickingSkill.buttonDescrpition()
-            updater.resetUpdater()
+            autoClickUpdater?.resetUpdater()
         }
         autoClickUpgradeButton.text = status.autoClickingSkill.buttonDescrpition()
 
@@ -139,8 +149,8 @@ class MyScene : Scene() {
             println(enemyFactory.list.size)
 
             val iter = enemyFactory.list.iterator()
-                while (iter.hasNext()) {
-                    val enemy = iter.next()
+            while (iter.hasNext()) {
+                val enemy = iter.next()
                 if (enemy.enemyShape.hitTestAny(point)) {
                     enemy.damage(100)
                 }
@@ -155,6 +165,16 @@ class MyScene : Scene() {
             val buttons: Int = input.mouseButtons
 
 
+            // check player health
+            if(status.mana.value < 0){
+                status.reset()
+                launchImmediately {
+                    sceneContainer.changeTo{DeathScreen()}
+                }
+
+            }
+
+
             // Update Text last
             manaNumber.text = "${status.mana}"
             // show the max number
@@ -162,7 +182,11 @@ class MyScene : Scene() {
             spendingPointsNumber.text = "${status.spendingPoints}"
 
 
+
+
+
         }
+
 
 
 //        enemy.create(root as Container)

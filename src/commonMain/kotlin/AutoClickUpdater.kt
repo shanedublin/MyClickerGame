@@ -6,6 +6,11 @@ class AutoClickUpdater(private val status: Status, private val root: View) {
 
     private lateinit var updater: Cancellable
 
+    fun stop() {
+        if (this::updater.isInitialized)
+            updater.cancel()
+    }
+
     fun resetUpdater() {
         if (this::updater.isInitialized)
             updater.cancel()
