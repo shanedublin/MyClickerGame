@@ -1,16 +1,9 @@
-import extensions.sub
-import korlibs.event.Event
-import korlibs.image.color.Colors
-import korlibs.io.async.Signal
-import korlibs.io.concurrent.atomic.KorAtomicInt
+import enemy.*
 import korlibs.io.lang.*
-import korlibs.korge.input.*
 import korlibs.korge.view.*
 import korlibs.korge.view.Circle
-import korlibs.korge.view.collision.*
 import korlibs.math.geom.*
 import korlibs.time.*
-import kotlin.math.absoluteValue
 import kotlin.random.*
 
 class EnemyFactory(var root: View) {
@@ -29,7 +22,7 @@ class EnemyFactory(var root: View) {
         }
 
 
-        updater = root.addFixedUpdater(1.timesPerSecond) {
+        updater = root.addFixedUpdater(.2.timesPerSecond) {
 
             spawnUnit()
             if (status.spendingPoints > 1) {
@@ -59,7 +52,7 @@ class EnemyFactory(var root: View) {
     }
 
     fun create(root: Container): Enemy {
-        return Enemy(root).also { list.add(it) }
+        return MovingEnemy(root).also { list.add(it) }
     }
 
     fun killUnit(enemy: Enemy) {
@@ -68,78 +61,22 @@ class EnemyFactory(var root: View) {
 
     fun spawnUnit() {
         val enemy = create(root as Container)
-        enemy.enemyShape.pos = enemy.randomPosition()
-        enemy.enemyShape.onClick {
-            enemy.kill()
-        }
+        enemy.enemyShape.pos = enemy.randomPositionPolar()
     }
 
 }
 
 
-
-class Enemy(root: Container) {
-    val updater: Cancellable
-    val enemyShape: Circle
-    val moveSpeedRatio = 1
-    val reward = 5
+abstract class Enemy(root: Container) {
+    lateinit var updater: Cancellable
+    lateinit var enemyShape: Circle
+    val moveSpeedRatio = .1
+    var reward = 5
     var health = 1
     var maxHealth = 1
-    var damage = 1
+    var damage = 2
 
     val status = mainInjector.get<Status>()
-
-
-    init {
-
-
-        enemyShape = root.circle { radius = 16.0; color = Colors.RED }
-        var t = 0L
-//        val randomPos = Point(Random(2L).ints(0,1024).first(),2)
-//        c.centerOnStage()
-//        c.pos = Point(0, 0)
-//        val center = c.pos
-//        println("Center pos: ${center}")
-//        root.width
-//        root.height
-
-        // change to be the mouse?
-
-        updater = enemyShape.addUpdater { timeSpan ->
-
-            if (enemyShape.collidesWithShape(manaSphere)) {
-                // basically kill itself
-                damage(100)
-                status.mana.sub(damage)
-
-            }
-
-            val target = stage?.input?.mousePos
-
-            target?.let {
-
-                val vector = getVectorTowardPoint(enemyShape.center().pos, manaSphere.center().pos)
-                val mag = vector.x.absoluteValue + vector.y.absoluteValue
-
-//                x = target.x
-//                y = target.y
-
-                if (mag > 2) {
-                    val movefactorVector = vector.normalized
-                    enemyShape.pos.let {
-                        x += movefactorVector.x * moveSpeedRatio
-                        y += movefactorVector.y * moveSpeedRatio
-                    }
-
-                } else {
-                    // do nothing
-                }
-            }
-
-        }
-
-
-    }
 
 
     fun cleanup() {
@@ -147,10 +84,13 @@ class Enemy(root: Container) {
         enemyShape.removeFromParent()
     }
 
-    fun randomPosition(): Point {
+    fun randomPositionPolar(length: Double = 700.0): Point {
         val angle = Random.nextInt()
-//        val distance = Random.nextDouble(100.0,400.0)
-        return Point.polar(manaSphere.pos, angle.degrees, 700.0)
+        return Point.polar(manaSphere.pos, angle.degrees, length)
+    }
+
+    fun randomPositionRect(): Point {
+        return Point(Random.nextInt(0, 1400), Random.nextInt(0, 800))
     }
 
 
@@ -170,11 +110,12 @@ class Enemy(root: Container) {
         enemyDeathSignal.invoke(EnemyDeath(this))
     }
 
-    fun damage(i: Int) {
+    fun damage(i: Int): Int {
         health -= i
         if (health <= 0) {
             kill()
         }
+        return 3
     }
 }
 

@@ -38,6 +38,7 @@ class SkillTreeScreen :Scene(){
 
         resetButton.onClick {
             sceneContainer.changeTo({MyScene()})
+
         }
 
 

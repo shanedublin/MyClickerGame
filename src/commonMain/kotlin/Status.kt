@@ -3,11 +3,8 @@ import korlibs.io.concurrent.atomic.setValue
 import kotlin.reflect.KProperty
 
 
-
-
 class Status() {
     var mana: KorAtomicInt = KorAtomicInt(0)
-
 
 
     init {
@@ -24,24 +21,30 @@ class Status() {
 
     var maxMana = 10
 
-    val clickingSkill = Skill("Clicking Power", upgradeAction = { cost -> manaClickingPower++; mana.addAndGet(-cost) })
-    val investmentSkill =
-        Skill("Investment Power", upgradeAction = { cost -> investClickingPower += 2; mana.addAndGet(-cost) })
+    val clickingSkill = Skill("Clicking Power",
+        upgradeAction = { cost -> manaClickingPower++; mana.addAndGet(-cost) },
+        resetAction = { manaClickingPower = 1; })
+
+    val investmentSkill = Skill("Investment Power",
+        upgradeAction = { cost -> investClickingPower += 2; mana.addAndGet(-cost) },
+        resetAction = { investClickingPower = 2 })
     val autoClickingSkill = Skill(
-        "Auto Clicking Frequency", costs = listOf(10, 100, 1000, 10000, 100000),
+        "Auto Clicking Frequency",
+        costs = listOf(10, 100, 1000, 10000, 100000),
         upgradeAction = { cost -> autoClickingFrequency += 1; mana.addAndGet(-cost) },
-        level = 0
+        resetAction = { autoClickingFrequency = 0.0 },
+        initialLevel = 0
     )
 
     val manaIncreaseAmount = listOf(10, 30, 50, 100, 300)
     val increaseManaSkill =
         Skill("Increase Mana",
-            level = 0,
-            costs = listOf(10,20,400,1000),
+            initialLevel = 0,
+            costs = listOf(5, 10, 20, 100),
             upgradeAction = { cost -> maxMana += getManaAmount(); spendingPoints -= cost })
 
     fun getManaAmount(): Int {
-        return manaIncreaseAmount[increaseManaSkill.level-1]
+        return manaIncreaseAmount[increaseManaSkill.currentLevel - 1]
     }
 
 
@@ -58,23 +61,20 @@ class Status() {
     var spendingPoints = 0
 
 
-
-
-
     fun clickMana() {
-        mana.addAndGet( manaClickingPower)
+        mana.addAndGet(manaClickingPower)
         if (mana.value > maxMana) {
-            mana.compareAndSet(mana.value,maxMana)
+            mana.compareAndSet(mana.value, maxMana)
         }
     }
 
     fun invest() {
         if (mana.value >= investClickingPower) {
             investment += investClickingPower
-            mana.addAndGet(- investClickingPower)
+            mana.addAndGet(-investClickingPower)
         } else if (mana.value > 0) {
             investment += mana.value
-            mana.compareAndSet(mana.value,0)
+            mana.compareAndSet(mana.value, 0)
         }
         if (investment >= maxInvestment) {
             investment -= maxInvestment
@@ -85,8 +85,8 @@ class Status() {
         }
     }
 
-    fun invest(investAmount: Int ){
-        investment+= investAmount
+    fun invest(investAmount: Int) {
+        investment += investAmount
         if (investment >= maxInvestment) {
             investment -= maxInvestment
             spendingPoints += 1
@@ -98,46 +98,58 @@ class Status() {
 
 
     fun reset() {
-        mana.compareAndSet(mana.value,0)
+        mana.compareAndSet(mana.value, 0)
         investment = 0
-        if(spendingPoints < 0)
+        if (spendingPoints < 0)
             spendingPoints = 0
         maxInvestment = spendingPoints + 1 * 10
 
 
         // skills
-        autoClickingSkill.level=0
-        investmentSkill.level = 1
-        clickingSkill.level = 0
+        autoClickingSkill.reset()
+        clickingSkill.reset()
 
     }
-
 
 
 }
 
 class Skill(
     var name: String = "Unnamed Skill",
-    var level: Int = 1,
+    initialLevel: Int = 1,
     var costs: List<Int> = listOf(0, 5, 10, 15, 20),
-    var upgradeAction: (cost: Int) -> Unit = {}
+    var upgradeAction: (cost: Int) -> Unit = {},
+    var resetAction: () -> Unit = {}
 ) {
+    var currentLevel: Int = 0
+    var initialLevel: Int = 0
+
+    init {
+        currentLevel = initialLevel
+        this.initialLevel = initialLevel
+    }
+
     /**
      *  returns if you can't upgrade or you are at max level
      */
     fun upgrade(availablePoints: Int): Int {
-        val levelCost = costs.elementAtOrNull(level)
+        val levelCost = costs.elementAtOrNull(currentLevel)
         levelCost?.let {
             if (it <= availablePoints) {
-                level++
+                currentLevel++
                 upgradeAction(levelCost)
-                println("Upgrading Skill $name to level : $level")
+                println("Upgrading Skill $name to level : $currentLevel")
             }
         }
         return levelCost ?: 0
     }
 
+    fun reset() {
+        resetAction()
+        currentLevel = initialLevel
+    }
+
     fun buttonDescrpition(): String {
-        return "$name lvl: $level Upgrade Cost: ${upgrade(0)}"
+        return "$name lvl: $currentLevel Upgrade Cost: ${upgrade(0)}"
     }
 }

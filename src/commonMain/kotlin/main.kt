@@ -46,13 +46,9 @@ class MyScene : Scene() {
 
 
         manaSphere = circle {
-            radius = 30.0
+            radius = 64.0
             onClick {
                 status.clickMana()
-            }
-            addUpdater {
-                val xy: Point = input.mousePos
-                val buttons: Int = input.mouseButtons
             }
             pos = (Point(700, 400))
         }
@@ -87,12 +83,21 @@ class MyScene : Scene() {
         investNumber.alignTopToBottomOf(t, 10)
         investNumber.alignLeftToRightOf(investText, 10)
 
-        val manaText = text("Mana: ")
-        val manaNumber = text("0")
-        manaText.alignBottomToBottomOf(root, 10)
-        manaText.centerXOnStage()
-        manaNumber.alignBottomToBottomOf(root, 10)
+        val manaHealthBar = roundRect(Size(200, 40), RectCorners(4), Colors.AQUA)
+        manaHealthBar.alignBottomToBottomOf(root, 10)
+        manaHealthBar.centerXOnStage()
+
+
+        val manaText = text("Mana: ", textSize = Text.DEFAULT_TEXT_SIZE * 1.6)
+        val manaNumber = text("0", textSize = Text.DEFAULT_TEXT_SIZE * 1.6)
+        manaText.centerOn(manaHealthBar)
+
+        manaNumber.alignBottomToBottomOf(manaText)
         manaNumber.alignLeftToRightOf(manaText, 10)
+
+        manaHealthBar.width = 10.0
+
+
 
         val resetButton = uiButton(label = "Reset")
         resetButton.alignLeftToLeftOf(root, 10)
@@ -166,10 +171,10 @@ class MyScene : Scene() {
 
 
             // check player health
-            if(status.mana.value < 0){
+            if (status.mana.value < 0) {
                 status.reset()
                 launchImmediately {
-                    sceneContainer.changeTo{DeathScreen()}
+                    sceneContainer.changeTo { DeathScreen() }
                 }
 
             }
@@ -181,12 +186,10 @@ class MyScene : Scene() {
             investNumber.text = "${status.investment} : ${status.maxInvestment}"
             spendingPointsNumber.text = "${status.spendingPoints}"
 
-
-
+            manaHealthBar.width = 10.0 + 190.0 * status.mana.value.toDouble() / status.maxMana.toDouble()
 
 
         }
-
 
 
 //        enemy.create(root as Container)

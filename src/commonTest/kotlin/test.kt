@@ -1,3 +1,4 @@
+import enemy.*
 import korlibs.time.*
 import korlibs.korge.input.*
 import korlibs.korge.tests.*
@@ -19,8 +20,23 @@ class MyTest : ViewsForTesting() {
         rect.simulateClick()
         assertEquals(true, rect.isVisibleToUser())
         tween(rect::x[-102], time = 10.seconds)
-        assertEquals(Rectangle(x=-102, y=0, width=100, height=100), rect.globalBounds)
+        assertEquals(Rectangle(x = -102, y = 0, width = 100, height = 100), rect.globalBounds)
         assertEquals(false, rect.isVisibleToUser())
         assertEquals(listOf("clicked"), log)
     }
+
+
+    @Test
+    fun damageTest() = viewsTest {
+
+        mainInjector.mapSingleton<Status> { Status() }
+
+        val e = StandingEnemy(views.root)
+        e.health = 5
+        val cost = e.damage(3)
+        assertEquals(3, cost)
+        assertEquals(2,e.damage(5))
+
+    }
+
 }
